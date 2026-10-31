@@ -1,0 +1,23 @@
+# Ignore heavy directories and temporary files during docker build
+venv/
+.venv/
+.git/
+models/
+output/
+input/
+temp/
+user/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.bat
+*.safetensors
+*.ckpt
+*.pt
+*.bin
+*.mp4
+*.png
+*.jpg
+*.wav
+*.mp3

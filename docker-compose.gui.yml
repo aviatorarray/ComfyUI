@@ -1,0 +1,45 @@
+# =============================================================================
+# Chilume - ComfyUI GUI Docker Compose (Built From Local Source)
+# Designed for interactive browser usage, visual node editing & live preview
+# Access at: http://localhost:8188
+# =============================================================================
+
+services:
+  comfyui-gui:
+    build:
+      context: ${COMFY_SRC_DIR:-/mnt/d/ComfyUI}
+      dockerfile: Dockerfile
+    image: chilume-comfyui:local
+    container_name: chilume-comfyui-gui
+    restart: unless-stopped
+    ports:
+      - "8188:8188"
+    command: ["--listen", "0.0.0.0", "--port", "8188", "--enable-cors-header", "*"]
+    environment:
+      - TZ=Asia/Kolkata
+    volumes:
+      # Local models (SDXL, Juggernaut-XL, RealVisXL, VAEs, Checkpoints)
+      - ${COMFY_MODELS_DIR:-/mnt/d/ComfyUI/models}:/app/ComfyUI/models
+      # Custom nodes (ACE-Step-ComfyUI, ComfyUI-Manager, LivePortrait, IPAdapter)
+      - ${COMFY_CUSTOM_NODES_DIR:-/mnt/d/ComfyUI/custom_nodes}:/app/ComfyUI/custom_nodes
+      # Storage input/output
+      - ${COMFY_INPUT_DIR:-/mnt/d/ComfyUI/input}:/app/ComfyUI/input
+      - ${COMFY_OUTPUT_DIR:-/mnt/d/ComfyUI/output}:/app/ComfyUI/output
+      # Chilume production workflows loaded directly into ComfyUI's workflow library
+      - ${CHILUME_WORKFLOWS_DIR:-/mnt/d/Chilume/04_comfy_workflows}:/app/ComfyUI/user/default/workflows
+      # Persistent cache for pip and torch hub
+      - comfy-cache:/root/.cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    extra_hosts:
+      # Host gateway to reach ACE-Step local server (port 8002) from inside the container
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  comfy-cache:
+    name: chilume-comfy-cache

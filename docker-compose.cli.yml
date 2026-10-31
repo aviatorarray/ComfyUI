@@ -1,0 +1,60 @@
+# =============================================================================
+# Chilume - ComfyUI CLI / Headless Automation Docker Compose (Built From Local Source)
+# Designed for autonomous batch runs, API scripts, and headless execution
+# =============================================================================
+
+services:
+  comfyui-server:
+    build:
+      context: ${COMFY_SRC_DIR:-/mnt/d/ComfyUI}
+      dockerfile: Dockerfile
+    image: chilume-comfyui:local
+    container_name: chilume-comfyui-cli-server
+    restart: unless-stopped
+    ports:
+      - "8188:8188"
+    command: ["--listen", "0.0.0.0", "--port", "8188", "--disable-auto-launch", "--enable-cors-header", "*"]
+    environment:
+      - TZ=Asia/Kolkata
+    volumes:
+      # Local models
+      - ${COMFY_MODELS_DIR:-/mnt/d/ComfyUI/models}:/app/ComfyUI/models
+      # Custom nodes
+      - ${COMFY_CUSTOM_NODES_DIR:-/mnt/d/ComfyUI/custom_nodes}:/app/ComfyUI/custom_nodes
+      # Storage input/output
+      - ${COMFY_INPUT_DIR:-/mnt/d/ComfyUI/input}:/app/ComfyUI/input
+      - ${COMFY_OUTPUT_DIR:-/mnt/d/ComfyUI/output}:/app/ComfyUI/output
+      # Production workflows
+      - ${CHILUME_WORKFLOWS_DIR:-/mnt/d/Chilume/04_comfy_workflows}:/app/ComfyUI/user/default/workflows
+      # Persistent cache
+      - comfy-cache:/root/.cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  chilume-cli:
+    image: python:3.12-slim
+    container_name: chilume-cli-runner
+    working_dir: /workspace
+    volumes:
+      - /mnt/d/Chilume:/workspace
+      - ${COMFY_OUTPUT_DIR:-/mnt/d/ComfyUI/output}:/mnt/d/ComfyUI/output
+    environment:
+      - COMFY_URL=http://comfyui-server:8188
+      - ACESTEP_URL=http://host.docker.internal:8002
+      - PYTHONUNBUFFERED=1
+    command: ["python", "scripts/comfy_auto_studio.py", "--mode", "check"]
+    depends_on:
+      - comfyui-server
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  comfy-cache:
+    name: chilume-comfy-cache
